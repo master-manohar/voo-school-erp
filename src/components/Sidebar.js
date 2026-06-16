@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { FiHome, FiUsers, FiCheckSquare, FiBookOpen, FiDollarSign, FiMessageSquare, FiSettings, FiLogOut, FiChevronLeft } from 'react-icons/fi';
+import { FiHome, FiUsers, FiCheckSquare, FiBookOpen, FiDollarSign, FiMessageSquare, FiSettings, FiLogOut, FiChevronLeft, FiFileText } from 'react-icons/fi';
 import { usePathname, useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
 
 const adminNavItems = [
   { label: 'Dashboard', icon: FiHome, path: '/dashboard' },
+  { label: 'Enquiries', icon: FiFileText, path: '/enquiries' },
   { label: 'Students', icon: FiUsers, path: '/students' },
   { label: 'Attendance', icon: FiCheckSquare, path: '/attendance' },
   { label: 'Academics', icon: FiBookOpen, path: '/academics' },

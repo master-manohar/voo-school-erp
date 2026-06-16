@@ -1,10 +1,11 @@
 'use client';
 
-import { FiHome, FiUsers, FiDollarSign, FiMessageSquare, FiMoreHorizontal } from 'react-icons/fi';
+import { FiHome, FiUsers, FiDollarSign, FiMessageSquare, FiMoreHorizontal, FiFileText } from 'react-icons/fi';
 import { usePathname, useRouter } from 'next/navigation';
 
 const navItems = [
   { label: 'Home', icon: FiHome, path: '/dashboard' },
+  { label: 'Enquiries', icon: FiFileText, path: '/enquiries' },
   { label: 'Students', icon: FiUsers, path: '/students' },
   { label: 'Fees', icon: FiDollarSign, path: '/fees' },
   { label: 'Messages', icon: FiMessageSquare, path: '/communication' },

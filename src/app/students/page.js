@@ -1,271 +1,295 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/lib/auth';
-import DataTable from '@/components/DataTable';
-import Modal from '@/components/Modal';
-import BuildPromptModal from '@/components/BuildPromptModal';
-import { FiPlus, FiDownload, FiFilter, FiUserPlus, FiTool } from 'react-icons/fi';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { formatCurrency, getStatusColor } from '@/lib/utils';
-
-// Demo student data
-const DEMO_STUDENTS = [
-  { admNo: 'VOO-2024-001', name: 'Aarav Sharma', class: 'Class 10', section: 'A', fatherName: 'Rajesh Sharma', fatherMobile: '9876543210', status: 'Active', feeBalance: 15000 },
-  { admNo: 'VOO-2024-002', name: 'Ananya Reddy', class: 'Class 10', section: 'A', fatherName: 'Suresh Reddy', fatherMobile: '9876543211', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-003', name: 'Bhavya Patel', class: 'Class 9', section: 'B', fatherName: 'Dinesh Patel', fatherMobile: '9876543212', status: 'Active', feeBalance: 8500 },
-  { admNo: 'VOO-2024-004', name: 'Charvi Iyer', class: 'Class 9', section: 'A', fatherName: 'Srinivas Iyer', fatherMobile: '9876543213', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-005', name: 'Devansh Gupta', class: 'Class 8', section: 'A', fatherName: 'Anil Gupta', fatherMobile: '9876543214', status: 'Active', feeBalance: 22000 },
-  { admNo: 'VOO-2024-006', name: 'Eesha Nair', class: 'Class 8', section: 'B', fatherName: 'Mohan Nair', fatherMobile: '9876543215', status: 'Active', feeBalance: 5000 },
-  { admNo: 'VOO-2024-007', name: 'Farhan Khan', class: 'Class 7', section: 'A', fatherName: 'Irfan Khan', fatherMobile: '9876543216', status: 'Inactive', feeBalance: 35000 },
-  { admNo: 'VOO-2024-008', name: 'Gayathri Das', class: 'Class 7', section: 'A', fatherName: 'Pratap Das', fatherMobile: '9876543217', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-009', name: 'Harsh Verma', class: 'Class 6', section: 'B', fatherName: 'Vijay Verma', fatherMobile: '9876543218', status: 'Active', feeBalance: 12000 },
-  { admNo: 'VOO-2024-010', name: 'Isha Mehta', class: 'Class 6', section: 'A', fatherName: 'Rahul Mehta', fatherMobile: '9876543219', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-011', name: 'Jai Prakash', class: 'Class 5', section: 'A', fatherName: 'Sunil Prakash', fatherMobile: '9876543220', status: 'Active', feeBalance: 7500 },
-  { admNo: 'VOO-2024-012', name: 'Kavya Sri', class: 'Class 5', section: 'B', fatherName: 'Raman Sri', fatherMobile: '9876543221', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-013', name: 'Lakshmi Devi', class: 'Class 4', section: 'A', fatherName: 'Narayana Devi', fatherMobile: '9876543222', status: 'Active', feeBalance: 18000 },
-  { admNo: 'VOO-2024-014', name: 'Manav Singh', class: 'Class 3', section: 'A', fatherName: 'Pradeep Singh', fatherMobile: '9876543223', status: 'Active', feeBalance: 0 },
-  { admNo: 'VOO-2024-015', name: 'Neha Joshi', class: 'Class 2', section: 'A', fatherName: 'Amit Joshi', fatherMobile: '9876543224', status: 'Pending', feeBalance: 45000 },
-];
-
-const CLASS_OPTIONS = ['All Classes', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
-const STATUS_OPTIONS = ['All Status', 'Active', 'Inactive', 'Pending'];
+import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import { Upload, Edit, Trash2 } from 'lucide-react';
 
 export default function StudentsPage() {
-  const { isAdmin } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState([]);
-  const [classFilter, setClassFilter] = useState(searchParams.get('class') || 'All Classes');
-  const [statusFilter, setStatusFilter] = useState('All Status');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [buildPrompt, setBuildPrompt] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setStudents(DEMO_STUDENTS);
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    fetchStudents();
   }, []);
 
-  const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
-      if (classFilter !== 'All Classes' && s.class !== classFilter) return false;
-      if (statusFilter !== 'All Status' && s.status !== statusFilter) return false;
-      return true;
-    });
-  }, [students, classFilter, statusFilter]);
+  const fetchStudents = async () => {
+    try {
+      const res = await fetch('/api/students');
+      const json = await res.json();
+      if (json.success) {
+        setStudents(json.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const columns = [
-    {
-      key: 'index',
-      label: '#',
-      width: '50px',
-      sortable: false,
-      render: (_, __, idx) => (
-        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{idx + 1}</span>
-      ),
-    },
-    {
-      key: 'admNo',
-      label: 'Adm No',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: 'var(--primary)', fontSize: 'var(--font-xs)' }}>{val}</span>
-      ),
-    },
-    {
-      key: 'name',
-      label: 'Student Name',
-      render: (val, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-full)',
-              background: `linear-gradient(135deg, var(--primary), ${row.status === 'Active' ? 'var(--success)' : 'var(--accent)'})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: 'white',
-              flexShrink: 0,
-            }}
-          >
-            {val?.charAt(0)}
-          </div>
-          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{val}</span>
-        </div>
-      ),
-    },
-    { key: 'class', label: 'Class' },
-    { key: 'fatherMobile', label: 'Father Mobile' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (val) => (
-        <span className={`badge ${getStatusColor(val)}`}>
-          <span className="badge-dot" />
-          {val}
-        </span>
-      ),
-    },
-    {
-      key: 'feeBalance',
-      label: 'Fee Balance',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: val > 0 ? 'var(--danger)' : 'var(--success)' }}>
-          {val > 0 ? formatCurrency(val) : 'Paid ✓'}
-        </span>
-      ),
-    },
-  ];
+  const cleanHeader = (header) => header.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        
+        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        if (rawData.length < 2) return;
+        
+        let headerRowIndex = 0;
+        for (let i = 0; i < rawData.length; i++) {
+          if (rawData[i].some(cell => typeof cell === 'string' && cell.includes('Student Full Name'))) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+
+        const headers = rawData[headerRowIndex].map(h => h ? cleanHeader(h.toString()) : '');
+        const rows = rawData.slice(headerRowIndex + 1);
+
+        const parsedData = rows.map(row => {
+          const obj = {};
+          headers.forEach((h, i) => {
+            if (h) obj[h] = row[i];
+          });
+          return obj;
+        }).filter(obj => obj['Admission No. ★'] || obj['Admission No']); 
+
+        const mappedData = parsedData.map(row => {
+          const getVal = (partialKey) => {
+            const key = Object.keys(row).find(k => k.includes(partialKey));
+            return key ? row[key] : null;
+          };
+
+          return {
+            admission_no: getVal('Admission No'),
+            student_full_name: getVal('Student Full Name'),
+            date_of_birth: getVal('Date of Birth'),
+            gender: getVal('Gender'),
+            blood_group: getVal('Blood Group'),
+            class_as_per_doj: getVal('Class AS PER DOJ'),
+            admsn_class: getVal('Admsn class'),
+            section: getVal('Section'),
+            join_date: getVal('Join Date'),
+            father_full_name: getVal('Father Full Name'),
+            father_mobile: getVal('Father Mobile'),
+            father_whatsapp: getVal('Father WhatsApp'),
+            father_email: getVal('Father Email'),
+            father_occupation: getVal('Father Occupation'),
+            father_qualification: getVal('Father Qualification'),
+            father_aadhaar: getVal('Father Aadhaar'),
+            father_alt_mobile: getVal('Father Alt. Mobile'),
+            mother_full_name: getVal('Mother Full Name'),
+            mother_mobile: getVal('Mother Mobile'),
+            mother_whatsapp: getVal('Mother WhatsApp'),
+            mother_email: getVal('Mother Email'),
+            mother_occupation: getVal('Mother Occupation'),
+            mother_qualification: getVal('Mother Qualification'),
+            mother_aadhaar: getVal('Mother Aadhaar'),
+            mother_alt_mobile: getVal('Mother Alt. Mobile'),
+            sibling_1_name: getVal('Sibling 1 Name'),
+            sibling_1_class: getVal('Sibling 1 Class'),
+            sibling_2_name: getVal('Sibling 2 Name'),
+            sibling_2_class: getVal('Sibling 2 Class'),
+            medical_allergy_notes: getVal('Medical / Allergy Notes'),
+            emergency_contact: getVal('Emergency Contact'),
+            emergency_mobile: getVal('Emergency Mobile'),
+            relation: getVal('Relation'),
+            aadhaar_no: getVal('Aadhaar No.'),
+            pen_no: getVal('PEN No.'),
+            apaar_udise: getVal('APAAR / UDISE'),
+            full_address: getVal('Full Address'),
+            status: getVal('Status') || getVal('STATUS'),
+            photo_link: getVal('Photo Link'),
+            exit_date: getVal('Exit Date'),
+            exit_reason: getVal('Exit Reason'),
+            tc_no: getVal('TC No.'),
+            tc_date: getVal('TC Date')
+          };
+        });
+
+        const res = await fetch('/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mappedData)
+        });
+
+        if (res.ok) {
+          alert('Import successful!');
+          fetchStudents();
+        } else {
+          alert('Failed to import.');
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Error parsing Excel file.');
+      } finally {
+        setImporting(false);
+        e.target.value = null; 
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const openEditModal = (student) => {
+    setEditing({ ...student });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const res = await fetch(`/api/students/${editing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editing)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsModalOpen(false);
+        fetchStudents();
+      } else {
+        alert('Failed to save.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this student?')) return;
+    try {
+      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchStudents();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
-    <div>
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Students
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
-            {filteredStudents.length} students found
-          </p>
-        </div>
-        <div className="page-header-actions">
-          <button className="btn btn-accent btn-sm" onClick={() => setBuildPrompt({ title: 'Student Management Module', prompt: 'Prompt: Build a comprehensive CRUD interface for student management. Connect to the MySQL database to perform create, read, update, and delete operations. Include features for bulk importing students via CSV.' })}>
-            <FiTool style={{ fontSize: '14px' }} />
-            Build Feature
-          </button>
-          <button className="btn btn-secondary btn-sm">
-            <FiDownload style={{ fontSize: '14px' }} />
-            Export
-          </button>
-          {isAdmin && (
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-              <FiPlus style={{ fontSize: '14px' }} />
-              Add Student
-            </button>
-          )}
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Student Directory</h1>
+        <div className="flex gap-4">
+          <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors">
+            <Upload size={18} />
+            {importing ? 'Importing...' : 'Bulk Import (Excel/CSV)'}
+            <input type="file" accept=".xlsx, .csv" className="hidden" onChange={handleFileUpload} disabled={importing} />
+          </label>
         </div>
       </div>
 
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filteredStudents}
-        loading={loading}
-        searchPlaceholder="Search by name, adm no, phone..."
-        onRowClick={(row) => router.push(`/students/${row.admNo}`)}
-        emptyTitle="No students found"
-        emptyText="Try adjusting your search or filters"
-        filters={
-          <>
-            <select
-              className="form-select"
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              style={{ maxWidth: '160px' }}
-            >
-              {CLASS_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <select
-              className="form-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ maxWidth: '140px' }}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </>
-        }
-      />
+      <div className="bg-white rounded-lg shadow overflow-x-auto max-h-[70vh]">
+        <table className="min-w-full text-left border-collapse">
+          <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+            <tr className="text-gray-700 uppercase text-xs">
+              <th className="px-4 py-3">Adm No.</th>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Class</th>
+              <th className="px-4 py-3">Father Name</th>
+              <th className="px-4 py-3">Father Mobile</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="7" className="text-center py-4">Loading...</td></tr>
+            ) : students.length === 0 ? (
+              <tr><td colSpan="7" className="text-center py-4 text-gray-500">No students found. Import some data!</td></tr>
+            ) : (
+              students.map((st) => (
+                <tr key={st.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-600 font-semibold">{st.admission_no}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800">{st.student_full_name}</td>
+                  <td className="px-4 py-3 text-gray-600">{st.admsn_class || st.class_as_per_doj}</td>
+                  <td className="px-4 py-3 text-gray-600">{st.father_full_name}</td>
+                  <td className="px-4 py-3 text-gray-600">{st.father_mobile}</td>
+                  <td className="px-4 py-3">
+                    <span className={\`px-2 py-1 rounded text-xs font-semibold \${
+                      st.status?.toUpperCase() === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }\`}>
+                      {st.status || 'ACTIVE'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button onClick={() => openEditModal(st)} className="text-blue-600 hover:text-blue-800 p-1 mr-2"><Edit size={18} /></button>
+                    <button onClick={() => handleDelete(st.id)} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={18} /></button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Add Student Modal */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add New Student"
-        large
-        footer={
-          <>
-            <button className="btn btn-ghost" onClick={() => setShowAddModal(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(false)}>
-              <FiUserPlus style={{ fontSize: '14px' }} />
-              Add Student
-            </button>
-          </>
-        }
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
-          <div className="form-group">
-            <label className="form-label">Student Name *</label>
-            <input type="text" className="form-input" placeholder="Full name" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Admission No *</label>
-            <input type="text" className="form-input" placeholder="VOO-2024-XXX" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Class *</label>
-            <select className="form-select">
-              {CLASS_OPTIONS.slice(1).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Section</label>
-            <select className="form-select">
-              <option>A</option>
-              <option>B</option>
-              <option>C</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Date of Birth</label>
-            <input type="date" className="form-input" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Gender</label>
-            <select className="form-select">
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Father&apos;s Name *</label>
-            <input type="text" className="form-input" placeholder="Father's full name" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Father&apos;s Mobile *</label>
-            <div className="input-group">
-              <span className="input-prefix">+91</span>
-              <input type="tel" className="form-input" placeholder="10-digit number" maxLength={10} />
+      {isModalOpen && editing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">Edit Student</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Student Name</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.student_full_name || ''} onChange={(e) => setEditing({...editing, student_full_name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Admission No.</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.admission_no || ''} onChange={(e) => setEditing({...editing, admission_no: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Admission Class</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.admsn_class || ''} onChange={(e) => setEditing({...editing, admsn_class: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select className="w-full border rounded p-2 bg-white" value={editing.status || 'ACTIVE'} onChange={(e) => setEditing({...editing, status: e.target.value})}>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="IN-ACTIVE">IN-ACTIVE</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Father Name</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.father_full_name || ''} onChange={(e) => setEditing({...editing, father_full_name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Father Mobile</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.father_mobile || ''} onChange={(e) => setEditing({...editing, father_mobile: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mother Name</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.mother_full_name || ''} onChange={(e) => setEditing({...editing, mother_full_name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mother Mobile</label>
+                  <input type="text" className="w-full border rounded p-2" value={editing.mother_mobile || ''} onChange={(e) => setEditing({...editing, mother_mobile: e.target.value})} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+                  <textarea className="w-full border rounded p-2" rows="2" value={editing.full_address || ''} onChange={(e) => setEditing({...editing, full_address: e.target.value})}></textarea>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+              </div>
             </div>
           </div>
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="form-label">Address</label>
-            <textarea className="form-textarea" placeholder="Full address" rows={2} />
-          </div>
         </div>
-      </Modal>
-
-      <BuildPromptModal 
-        isOpen={!!buildPrompt} 
-        onClose={() => setBuildPrompt(null)} 
-        title={buildPrompt?.title} 
-        prompt={buildPrompt?.prompt} 
-      />
+      )}
     </div>
   );
 }
