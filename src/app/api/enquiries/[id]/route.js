@@ -45,7 +45,7 @@ export async function PUT(request, context) {
         // Needs an admission number
         const currentYear = new Date().getFullYear();
         // Find highest admission number for this year in students table to auto-increment
-        const students = await query(`SELECT admission_no FROM students WHERE admission_no LIKE ? ORDER BY id DESC LIMIT 1`, [\`\${currentYear}-%\`]);
+        const students = await query(`SELECT admission_no FROM students WHERE admission_no LIKE ? ORDER BY id DESC LIMIT 1`, [`${currentYear}-%`]);
         
         let nextSequence = 1;
         if (students.length > 0) {
@@ -55,7 +55,7 @@ export async function PUT(request, context) {
           }
         }
         
-        newAdmissionNo = \`\${currentYear}-\${nextSequence}\`;
+        newAdmissionNo = `${currentYear}-${nextSequence}`;
         
         // Add to our update
         if (!setClauses.includes('admission_no = ?')) {

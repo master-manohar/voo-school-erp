@@ -197,12 +197,12 @@ export default function EnquiriesPage() {
                   <td className="px-4 py-3 text-gray-600">{eq.parent_name}</td>
                   <td className="px-4 py-3 text-gray-600">{eq.whatsapp_no}</td>
                   <td className="px-4 py-3">
-                    <span className={\`px-2 py-1 rounded text-xs font-semibold \${
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       eq.status === 'Joined' ? 'bg-green-100 text-green-800' :
                       eq.status === 'Follow-up' ? 'bg-yellow-100 text-yellow-800' :
                       eq.status === 'Not Interested' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
-                    }\`}>
+                    }`}>
                       {eq.status || 'Follow-up'}
                     </span>
                   </td>

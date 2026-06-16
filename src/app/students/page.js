@@ -217,9 +217,9 @@ export default function StudentsPage() {
                   <td className="px-4 py-3 text-gray-600">{st.father_full_name}</td>
                   <td className="px-4 py-3 text-gray-600">{st.father_mobile}</td>
                   <td className="px-4 py-3">
-                    <span className={\`px-2 py-1 rounded text-xs font-semibold \${
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       st.status?.toUpperCase() === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }\`}>
+                    }`}>
                       {st.status || 'ACTIVE'}
                     </span>
                   </td>
