@@ -96,17 +96,25 @@ export default function EnquiriesPage() {
           };
         });
 
+        if (mappedData.length === 0) {
+          alert('No valid rows found! Make sure the Excel sheet has a "Child Name" column.');
+          setImporting(false);
+          e.target.value = null;
+          return;
+        }
+
         const res = await fetch('/api/enquiries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(mappedData)
         });
 
-        if (res.ok) {
+        const resData = await res.json();
+        if (res.ok && resData.success) {
           alert('Import successful!');
           fetchEnquiries();
         } else {
-          alert('Failed to import.');
+          alert('Failed to import: ' + (resData.error || 'Unknown error'));
         }
 
       } catch (err) {
